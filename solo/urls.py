@@ -6,4 +6,6 @@ urlpatterns = [
     path('', views.book_list_view, name='solo_book_list'),
     path('buy/<int:book_id>/', views.book_checkout_view, name='solo_book_checkout'),
     path('success/', views.success_view, name='solo_success'),
+    path('', views.book_list_view, name='solo_book_list'),
+    path('<slug:slug>/', views.book_detail_view, name='solo_book_detail'),
 ]

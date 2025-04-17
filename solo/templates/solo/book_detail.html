@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container my-5">
+  <h2>{{ book.title }}</h2>
+  {% if book.cover %}
+    <img src="{{ book.cover.url }}" class="img-fluid mb-3" alt="{{ book.title }}">
+  {% endif %}
+  <p class="lead">{{ book.description }}</p>
+  <p><strong>Author:</strong> {{ book.author }}</p>
+  <p><strong>Price:</strong> ${{ book.price }}</p>
+
+  <!-- You can link to Stripe checkout later -->
+  <a href="{% url 'solo_book_checkout' book.id %}" class="btn btn-success">Buy Now</a>
+</div>
+{% endblock %}
