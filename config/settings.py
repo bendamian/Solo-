@@ -26,7 +26,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'solo'
+    # ... other apps ...
+    'users.apps.UsersConfig',
+    'solo',
+   
 
 ]
 
@@ -102,7 +105,9 @@ USE_I18N = True
 
 USE_TZ = True
 
-
+# Redirects after login/logout
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
