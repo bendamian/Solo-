@@ -1,6 +1,6 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
-    <a class="navbar-brand" href="{% url 'solo_book_list' %}">📚 Ebook</a>
+    <a class="navbar-brand" href="{% url 'solo_app:solo_book_list' %}">📚 Ebook</a>
     <div class="collapse navbar-collapse">
       <ul class="navbar-nav ms-auto">
         {% if user.is_authenticated %}
@@ -21,6 +21,21 @@
             <a class="nav-link" href="{% url 'register' %}">📝 Register</a>
           </li>
         {% endif %}
+          <div class="container-fluid">
+    <!-- Existing navbar content -->
+    <ul class="navbar-nav ms-auto">
+      <!-- Other nav items -->
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'cart_app:view_cart' %}">
+          🛒 Cart
+          {% if cart_item_count %}
+            <span class="badge bg-secondary">{{ cart_item_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+    </ul>
+  </div>
+         
       </ul>
     </div>
   </div>

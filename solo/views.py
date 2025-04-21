@@ -3,8 +3,7 @@ from django.shortcuts import render, get_object_or_404
 from .models import Book
 
 
-def book_list_view(request):
-    return render(request, 'solo/book_list.html')
+
 
 
 def book_checkout_view(request, book_id):

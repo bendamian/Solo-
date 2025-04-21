@@ -3,11 +3,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('solo.urls')),
-    path('accounts/', include('users.urls')),
+    path('', include('solo.urls' ,namespace='solo_app')),
+    path('accounts/', include('users.urls',namespace='users_app')),
+    path('cart/', include('cart.urls', namespace='cart_app')),
+    path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
 ]
 
 # Serve media files during development

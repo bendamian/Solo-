@@ -15,7 +15,7 @@ class Book(models.Model):
         return self.title
 
     def get_absolute_url(self):
-        return reverse('solo_book_detail', args=[self.slug])
+        return reverse('solo_app:solo_book_detail', args=[self.slug])
     
     def save(self, *args, **kwargs):
         if not self.slug:
