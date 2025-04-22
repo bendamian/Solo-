@@ -5,20 +5,20 @@
       <ul class="navbar-nav ms-auto">
         {% if user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'profile' %}">👤 Profile</a>
+            <a class="nav-link" href="{% url 'users_app:profile' %}">👤 Profile</a>
           </li>
           <li class="nav-item">
-            <form method="post" action="{% url 'logout' %}">
+            <form method="post" action="{% url 'users_app:logout' %}">
               {% csrf_token %}
               <button type="submit" class="btn btn-link nav-link" style="display: inline; padding: 0; border: none; background: none;">Logout</button>
             </form>
           </li>
         {% else %}
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'login' %}">🔐 Login</a>
+            <a class="nav-link" href="{% url 'users_app:login' %}">🔐 Login</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'register' %}">📝 Register</a>
+            <a class="nav-link" href="{% url 'users_app:register' %}">📝 Register</a>
           </li>
         {% endif %}
           <div class="container-fluid">

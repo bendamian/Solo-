@@ -10,7 +10,7 @@ urlpatterns = [
     path('', include('solo.urls' ,namespace='solo_app')),
     path('accounts/', include('users.urls',namespace='users_app')),
     path('cart/', include('cart.urls', namespace='cart_app')),
-    path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
+    #path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
 ]
 
 # Serve media files during development
