@@ -1,15 +1,19 @@
-{% extends 'base.html' %}
-
-{% block content %}
-<h2>Order Confirmation</h2>
-<p>Thank you for your order!</p>
-<p>Order ID: {{ order.id }}</p>
-<p>Shipping Address: {{ order.shipping_address }}</p>
-<p>Phone Number: {{ order.phone_number }}</p>
-<h3>Order Items:</h3>
-<ul>
-    {% for item in order.items.all %}
-    <li>{{ item.quantity }} x {{ item.book.title }} - ${{ item.price }}</li>
+{% extends 'base.html' %} {% block content %}
+<div class="container my-5">
+  <h2>Order Confirmation</h2>
+  <p>Thank you for your purchase, {{ request.user.first_name }}!</p>
+  <p><strong>Order ID:</strong> {{ order.id }}</p>
+  <p><strong>Shipping Address:</strong> {{ order.shipping_address }}</p>
+  <p><strong>Phone Number:</strong> {{ order.phone_number }}</p>
+  <h4>Order Items:</h4>
+  <ul>
+    {% for item in order.orderitem_set.all %}
+    <li>
+      {{ item.book.title }} - Quantity: {{ item.quantity }} - Price: ${{
+      item.price }}
+    </li>
     {% endfor %}
-</ul>
+  </ul>
+  <p><strong>Total:</strong> ${{ order.get_total_price }}</p>
+</div>
 {% endblock %}

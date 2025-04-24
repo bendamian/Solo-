@@ -51,10 +51,7 @@ def checkout(request):
     return render(request, 'cart/checkout.html', {'form': form, 'cart_items': cart_items})
 
 
-@login_required
-def order_confirmation(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
-    return render(request, 'cart/order_confirmation.html', {'order': order})
+
 
 
 @login_required
@@ -70,3 +67,14 @@ def remove_from_cart(request, item_id):
     cart_item = get_object_or_404(CartItem, id=item_id, user=request.user)
     cart_item.delete()
     return redirect('cart_app:view_cart')
+
+
+@login_required
+def order_confirmation(request, order_id):
+      order = get_object_or_404(Order, id=order_id, user=request.user)
+      return render(request, 'cart/order_confirmation.html', {'order': order})
+
+@login_required
+def order_history(request):
+      orders = Order.objects.filter(user=request.user).order_by('-created_at')
+      return render(request, 'cart/order_history.html', {'orders': orders})
