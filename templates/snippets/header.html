@@ -1,7 +1,16 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
     <a class="navbar-brand" href="{% url 'solo_app:solo_book_list' %}">📚 Ebook</a>
-    <div class="collapse navbar-collapse">
+
+    <!-- Toggler for mobile nav -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarContent" aria-controls="navbarContent"
+            aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarContent">
       <ul class="navbar-nav ms-auto">
         {% if user.is_authenticated %}
           <li class="nav-item">
@@ -10,7 +19,9 @@
           <li class="nav-item">
             <form method="post" action="{% url 'users_app:logout' %}">
               {% csrf_token %}
-              <button type="submit" class="btn btn-link nav-link" style="display: inline; padding: 0; border: none; background: none;">Logout</button>
+              <button type="submit" class="btn btn-link nav-link w-100 text-start" style="padding-left: 0;">
+                🚪 Logout
+              </button>
             </form>
           </li>
         {% else %}
@@ -21,21 +32,15 @@
             <a class="nav-link" href="{% url 'users_app:register' %}">📝 Register</a>
           </li>
         {% endif %}
-          <div class="container-fluid">
-    <!-- Existing navbar content -->
-    <ul class="navbar-nav ms-auto">
-      <!-- Other nav items -->
-      <li class="nav-item">
-        <a class="nav-link" href="{% url 'cart_app:view_cart' %}">
-          🛒 Cart
-          {% if cart_item_count %}
-            <span class="badge bg-secondary">{{ cart_item_count }}</span>
-          {% endif %}
-        </a>
-      </li>
-    </ul>
-  </div>
-         
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'cart_app:view_cart' %}">
+            🛒 Cart
+            {% if cart_item_count %}
+              <span class="badge bg-secondary">{{ cart_item_count }}</span>
+            {% endif %}
+          </a>
+        </li>
       </ul>
     </div>
   </div>
