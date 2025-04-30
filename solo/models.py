@@ -26,6 +26,7 @@ class Book(models.Model):
     type = models.CharField(max_length=20, choices=type_choices, blank=True)
     label = models.CharField(max_length=1, choices=LABEL_CHOICES, blank=True)
     cover = models.ImageField(upload_to='book_covers/', blank=True, null=True)
+    
 
     def __str__(self):
         return self.title

@@ -20,12 +20,12 @@ class CartItem(models.Model):
 
 class OrderItem(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
-    item = models.ForeignKey(Book,on_delete=models.CASCADE)
+    book = models.ForeignKey(Book,on_delete=models.CASCADE)
     ordered_date = models.DateTimeField('date ordered')
     quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):
-        return f'{self.quantity} x {self.item.title}'
+        return f'{self.quantity} x {self.book.title}'
 
 
 class Order(models.Model):
@@ -37,6 +37,7 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     ordered_date = models.DateTimeField()
     ordered = models.BooleanField(default=False)
+    
 
     def __str__(self):
         return f'Order {self.ref_code} by {self.user.username}'
