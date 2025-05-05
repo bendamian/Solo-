@@ -1,19 +1,16 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+{% block content %}
 <div class="container my-5">
   <h2>Order Confirmation</h2>
-  <p>Thank you for your purchase, {{ request.user.first_name }}!</p>
-  <p><strong>Order ID:</strong> {{ order.id }}</p>
-  <p><strong>Shipping Address:</strong> {{ order.shipping_address }}</p>
-  <p><strong>Phone Number:</strong> {{ order.phone_number }}</p>
-  <h4>Order Items:</h4>
+  <p>Your order with ID: <strong>{{ order.id }}</strong> has been successfully placed.</p>
+  <h3>Order Details:</h3>
   <ul>
     {% for item in order.orderitem_set.all %}
-    <li>
-      {{ item.book.title }} - Quantity: {{ item.quantity }} - Price: ${{
-      item.price }}
-    </li>
+    <li>{{ item.quantity }} x {{ item.book.title }} - ${{ item.subtotal|floatformat:2 }}</li>
     {% endfor %}
   </ul>
-  <p><strong>Total:</strong> ${{ order.get_total_price }}</p>
+  <p><strong>Total:</strong> ${{ order.total_amount|floatformat:2 }}</p>
+  <p>Thank you for your purchase!</p>
+  <a href="{% url 'solo_app:solo_book_list' %}" class="btn btn-primary">Continue Shopping</a>
 </div>
 {% endblock %}

@@ -5,14 +5,20 @@ from django.contrib.auth.models import User
 from solo.models import Book  # my Book model is in the 'solo' app
 import uuid
 
+
 class OrderItem(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE)
-    book = models.ForeignKey(Book,on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
     ordered_date = models.DateTimeField('date ordered')
     quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):
         return f'{self.quantity} x {self.book.title}'
+
+    @property
+    def subtotal(self):
+        return self.quantity * self.book.price
+
 
 
 class Order(models.Model):
@@ -28,6 +34,7 @@ class Order(models.Model):
 
     def __str__(self):
         return f'Order {self.ref_code} by {self.user.username}'
+    
 
 
 '''

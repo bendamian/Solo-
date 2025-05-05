@@ -1,3 +1,5 @@
+from .models import Order
+from django.shortcuts import render, redirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponseRedirect
 from django.contrib.auth.decorators import login_required
@@ -46,43 +48,59 @@ def add_to_cart(request, book_id):
 
 @login_required
 def checkout(request):
-    cart_items = Order.objects.filter(user=request.user)
+    # Retrieve the active (not yet ordered) order
+    order = Order.objects.filter(user=request.user, ordered=False).first()
+
+    if not order or order.items.count() == 0:
+        # No active order to check out
+        return redirect('cart_app:view_cart')
+
+    # Calculate subtotals and total
+    cart_items = []
+    total = 0
+    for item in order.items.all():
+        subtotal = item.book.price * item.quantity
+        cart_items.append({
+            'item': item,
+            'subtotal': subtotal
+        })
+        total += subtotal
+
     if request.method == 'POST':
         form = CheckoutForm(request.POST)
         if form.is_valid():
-            order = Order.objects.create(
-                user=request.user,
-                shipping_address=form.cleaned_data['shipping_address'],
-                phone_number=form.cleaned_data['phone_number']
-            )
-            for item in cart_items:
-                OrderItem.objects.create(
-                    order=order,
-                    book=item.book,
-                    price=item.book.price,
-                    quantity=item.quantity
-                )
-            cart_items.delete()
+            # Update the existing order with shipping details
+            order.shipping_address = form.cleaned_data['shipping_address']
+            order.phone_number = form.cleaned_data['phone_number']
+            order.ordered = True  # Mark the order as complete
+            order.save()
+
+            # Redirect to order confirmation page
             return redirect('order_confirmation', order_id=order.id)
     else:
         form = CheckoutForm()
-    return render(request, 'cart/checkout.html', {'form': form, 'cart_items': cart_items})
+
+    return render(request, 'cart/checkout.html', {
+        'form': form,
+        'cart_items': cart_items,
+        'order': order,
+        'total': total
+    })
+
+
+
 
 
 @login_required
 def view_cart(request):
     order = Order.objects.filter(user=request.user, ordered=False).first()
     order_items = order.items.all() if order else []
-    # Attach a 'subtotal' to each item
-    for item in order_items:
-        item.subtotal = item.book.price * item.quantity
-    total = sum(item.subtotal for item in order_items)
+    total = sum(item.subtotal for item in order_items) if order_items else 0
 
     return render(request, 'cart/view_cart.html', {
         'order_items': order_items,
         'total': total,
     })
-
 
 @login_required
 def remove_from_cart(request, item_id):

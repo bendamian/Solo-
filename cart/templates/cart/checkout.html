@@ -1,10 +1,58 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h2>Checkout</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Place Order</button>
-</form>
+<div class="container my-5">
+  <h2 class="mb-4">Checkout</h2>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="row">
+    <!-- Checkout Form -->
+    <div class="col-md-6">
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button {% url 'cart_app:order_confirmation' order.id %} type="submit" class="btn btn-primary mt-3">Place Order</button>
+      </form>
+    </div>
+
+    <!-- Cart Summary -->
+    <div class="col-md-6">
+      <h4>Your Cart</h4>
+      {% if cart_items %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Book</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in cart_items %}
+              <tr>
+                <td>{{ entry.item.book.title }}</td>
+                <td>{{ entry.item.quantity }}</td>
+                <td>${{ entry.item.book.price|floatformat:2 }}</td>
+                <td>${{ entry.subtotal|floatformat:2 }}</td>
+              </tr>
+            {% endfor %}
+            <tr>
+              <td colspan="3"><strong>Total:</strong></td>
+              <td><strong>${{ total|floatformat:2 }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      {% else %}
+        <p>Your cart is empty.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
 {% endblock %}
+
