@@ -9,7 +9,7 @@
         <div class="col">
             <div class="card h-100 shadow-sm rounded-3 border-0">
                 {% if book.cover %}
-                <img src="{{ book.cover.url }}" class="card-img-top rounded-top" alt="{{ book.title }}">
+                <img src="{{ book.cover.url }}" class="card-img-top rounded-top img-fluid" alt="{{ book.title }}">
                 {% else %}
                 <div class="bg-light d-flex align-items-center justify-content-center rounded-top" style="height: 200px;">
                     <i class="bi bi-image-alt fs-1 text-secondary"></i>

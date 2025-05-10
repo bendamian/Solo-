@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load cart_extras %}
+
+{% block content %}
+<div class="container my-5">
+  <h2 class="mb-4">Thank You for Your Order!</h2>
+
+  <div class="alert alert-success">
+    <strong>Order #{{ order.id }}</strong> has been successfully placed.
+  </div>
+
+  <h4 class="mt-4">Shipping Information</h4>
+  <p>
+    {{ order.shipping_address }}<br>
+    Phone: {{ order.phone_number }}
+  </p>
+
+  <h4 class="mt-4">Order Summary</h4>
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Book</th>
+        <th>Quantity</th>
+        <th>Price</th>
+        <th>Subtotal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in order.items.all %}
+      <tr>
+        <td>{{ item.book.title }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>${{ item.book.price|floatformat:2 }}</td>
+        <td>${{ item.book.price|multiply:item.quantity|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+      <tr>
+        <td colspan="3"><strong>Total</strong></td>
+        <td><strong>${{ total|floatformat:2 }}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="mt-4">
+    A confirmation email has been sent to your registered email address. If you have any questions, feel free to <a href="{% url 'contact' %}">contact us</a>.
+  </p>
+</div>
+{% endblock %}

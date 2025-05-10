@@ -1,13 +1,20 @@
-from .models import Order
+import stripe
+from django.conf import settings
 from django.shortcuts import render, redirect
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from solo.models import Book
 from .models import Order, OrderItem
 from .forms import CheckoutForm
 from django.contrib import messages
+from django.urls import reverse
+from django.views import View
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 @login_required
@@ -48,37 +55,23 @@ def add_to_cart(request, book_id):
 
 @login_required
 def checkout(request):
-    # Retrieve the active (not yet ordered) order
     order = Order.objects.filter(user=request.user, ordered=False).first()
-
-    if not order or order.items.count() == 0:
-        # No active order to check out
+    if not order or not order.items.exists():
         return redirect('cart_app:view_cart')
-
-    # Calculate subtotals and total
-    cart_items = []
-    total = 0
-    for item in order.items.all():
-        subtotal = item.book.price * item.quantity
-        cart_items.append({
-            'item': item,
-            'subtotal': subtotal
-        })
-        total += subtotal
 
     if request.method == 'POST':
         form = CheckoutForm(request.POST)
         if form.is_valid():
-            # Update the existing order with shipping details
             order.shipping_address = form.cleaned_data['shipping_address']
             order.phone_number = form.cleaned_data['phone_number']
-            order.ordered = True  # Mark the order as complete
+            order.ordered = True
             order.save()
-
-            # Redirect to order confirmation page
             return redirect('order_confirmation', order_id=order.id)
     else:
         form = CheckoutForm()
+
+    cart_items = order.items.all()
+    total = sum(item.book.price * item.quantity for item in cart_items)
 
     return render(request, 'cart/checkout.html', {
         'form': form,
@@ -86,7 +79,6 @@ def checkout(request):
         'order': order,
         'total': total
     })
-
 
 
 
@@ -134,6 +126,95 @@ def remove_from_cart(request, item_id):
     return redirect('cart_app:view_cart')
 
 
+@method_decorator([login_required, csrf_exempt], name='dispatch')
+@method_decorator([login_required, csrf_exempt], name='dispatch')
+class CreateCheckoutSessionView(View):
+    def post(self, request, *args, **kwargs):
+        order = request.user.orders.filter(ordered=False).first()
+        if not order or not order.items.exists():
+            return redirect('cart_app:view_cart')
+
+        line_items = []
+        for item in order.items.all():
+            line_items.append({
+                'price_data': {
+                    'currency': 'gbp',
+                    'unit_amount': int(item.book.price * 100),
+                    'product_data': {
+                        'name': item.book.title,
+                        'description': f'{item.quantity} x {item.book.title}',
+                    },
+                },
+                'quantity': item.quantity,
+            })
+
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                line_items=line_items,
+                mode='payment',
+                success_url=request.build_absolute_uri(
+                    reverse('cart_app:checkout_success')) + '?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=request.build_absolute_uri(
+                    reverse('cart_app:checkout')),
+            )
+            return redirect(checkout_session.url, code=303)
+        except Exception as e:
+            print(f"Stripe Error: {e}")
+            return redirect('cart_app:checkout_failure')
+
+def checkout(request):
+    order = request.user.order_set.filter(ordered=False).first()
+    context = {'order': order}
+    return render(request, 'cart/checkout.html', context)
+
+
+def checkout_success(request):
+    session_id = request.GET.get('session_id')
+    if not session_id:
+        return redirect('cart_app:checkout_failure')
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        if session.payment_status == 'paid':
+            order = request.user.order_set.filter(ordered=False).first()
+            if order:
+                order.ordered = True
+                order.stripe_session_id = session_id
+                order.save()
+                # Optionally clear the user's cart
+                # Optionally send confirmation emails
+                return render(request, 'cart/checkout_success.html', {'order': order})
+            else:
+                return redirect('solo_app:solo_book_list')  # Order not found
+        else:
+            return redirect('cart_app:checkout_failure')
+    except stripe.error.InvalidRequestError as e:
+        print(f"Stripe Invalid Request Error: {e}")
+        return redirect('cart_app:checkout_failure')
+
+
+def checkout_failure(request):
+    return render(request, 'cart/checkout_failure.html')
+
+
+def order_confirmation(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    return render(request, 'cart/order_confirmation.html', {'order': order})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @login_required
 def order_confirmation(request, order_id):
       order = get_object_or_404(Order, id=order_id, user=request.user)
@@ -143,3 +224,39 @@ def order_confirmation(request, order_id):
 def order_history(request):
       orders = Order.objects.filter(user=request.user).order_by('-created_at')
       return render(request, 'cart/order_history.html', {'orders': orders})
+
+
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    event = None
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        # Invalid payload
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return HttpResponse(status=400)
+
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        try:
+            order = Order.objects.get(stripe_session_id=session.id)
+            order.payment_status = 'PAID'
+            # Optionally update order status, send confirmation emails, etc.
+            order.save()
+        except Order.DoesNotExist:
+            print(f"Order not found for session ID: {session.id}")
+            pass
+
+    elif event['type'] == 'payment_failed':
+        payment_intent = event['data']['object']
+        print(f"Payment failed for PaymentIntent: {payment_intent.id}")
+        # Optionally update order status or notify the user
+
+    return HttpResponse(status=200)

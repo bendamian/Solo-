@@ -3,7 +3,11 @@
 <div class="container my-5">
   <h2>{{ book.title }}</h2>
   {% if book.cover %}
-    <img src="{{ book.cover.url }}" class="img-fluid mb-3" alt="{{ book.title }}">
+    <img src="{{ book.cover.url }}" class="img-fluid mb-3" style="width: 200px; height: 300px; object-fit: cover;" alt="{{ book.title }}">
+  {% else %}
+    <div class="bg-light d-flex align-items-center justify-content-center" style="width: 200px; height: 300px;">
+      <i class="bi bi-image-alt fs-1 text-secondary"></i>
+    </div>
   {% endif %}
   <p class="lead">{{ book.description }}</p>
   <p><strong>Author:</strong> {{ book.author }}</p>

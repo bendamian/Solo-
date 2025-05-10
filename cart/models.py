@@ -30,6 +30,9 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     ordered_date = models.DateTimeField()
     ordered = models.BooleanField(default=False)
+    stripe_session_id = models.CharField(max_length=255, blank=True, null=True)
+    payment_status = models.CharField(
+        max_length=20, default='PENDING')  # e.g., PENDING, PAID, FAILED
     
 
     def __str__(self):
