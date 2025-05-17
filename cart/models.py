@@ -11,6 +11,7 @@ class OrderItem(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     ordered_date = models.DateTimeField('date ordered')
     quantity = models.PositiveIntegerField(default=1)
+    ordered = models.BooleanField(default=False)  
 
     def __str__(self):
         return f'{self.quantity} x {self.book.title}'
@@ -31,13 +32,16 @@ class Order(models.Model):
     ordered_date = models.DateTimeField()
     ordered = models.BooleanField(default=False)
     stripe_session_id = models.CharField(max_length=255, blank=True, null=True)
-    payment_status = models.CharField(
-        max_length=20, default='PENDING')  # e.g., PENDING, PAID, FAILED
+    payment_status = models.CharField(max_length=20, default='PENDING')  # e.g., PENDING, PAID, FAILED
     
 
     def __str__(self):
         return f'Order {self.ref_code} by {self.user.username}'
     
+    def get_unordered_items(self):
+        return self.items.filter(ordered=False)
+
+  
 
 
 '''

@@ -24,7 +24,7 @@ def add_to_cart(request, book_id):
 
     if order_qs.exists():
         order = order_qs[0]
-        order_item_qs = order.items.filter(book=book)
+        order_item_qs = order.items.filter(book=book, ordered=False)
         if order_item_qs.exists():
             order_item = order_item_qs[0]
             order_item.quantity += 1
@@ -34,7 +34,8 @@ def add_to_cart(request, book_id):
                 user=request.user,
                 book=book,
                 ordered_date=timezone.now(),
-                quantity=1
+                quantity=1,
+                ordered=False
             )
             order.items.add(order_item)
     else:
@@ -42,7 +43,8 @@ def add_to_cart(request, book_id):
             user=request.user,
             book=book,
             ordered_date=timezone.now(),
-            quantity=1
+            quantity=1,
+            ordered=False
         )
         order = Order.objects.create(
             user=request.user,
@@ -64,7 +66,8 @@ def checkout(request):
         if form.is_valid():
             order.shipping_address = form.cleaned_data['shipping_address']
             order.phone_number = form.cleaned_data['phone_number']
-            order.ordered = True
+            order.ordered = False
+            order.payment_status = 'PENDING'
             order.save()
             return redirect('order_confirmation', order_id=order.id)
     else:
@@ -126,7 +129,7 @@ def remove_from_cart(request, item_id):
     return redirect('cart_app:view_cart')
 
 
-@method_decorator([login_required, csrf_exempt], name='dispatch')
+
 @method_decorator([login_required, csrf_exempt], name='dispatch')
 class CreateCheckoutSessionView(View):
     def post(self, request, *args, **kwargs):
@@ -150,24 +153,35 @@ class CreateCheckoutSessionView(View):
 
         try:
             checkout_session = stripe.checkout.Session.create(
+                
                 line_items=line_items,
                 mode='payment',
+                client_reference_id=order.id,
                 success_url=request.build_absolute_uri(
                     reverse('cart_app:checkout_success')) + '?session_id={CHECKOUT_SESSION_ID}',
                 cancel_url=request.build_absolute_uri(
                     reverse('cart_app:checkout')),
+                metadata={
+                    'order_id': str(order.id)
+                },
             )
+            # Save the session ID now!
+            order.stripe_session_id = checkout_session.id
+            order.save()
+
             return redirect(checkout_session.url, code=303)
         except Exception as e:
             print(f"Stripe Error: {e}")
             return redirect('cart_app:checkout_failure')
 
+
+'''
 def checkout(request):
-    order = request.user.order_set.filter(ordered=False).first()
+    order = request.user.orders.filter(ordered=False).first()
     context = {'order': order}
     return render(request, 'cart/checkout.html', context)
 
-
+'''
 def checkout_success(request):
     session_id = request.GET.get('session_id')
     if not session_id:
@@ -176,21 +190,25 @@ def checkout_success(request):
     try:
         session = stripe.checkout.Session.retrieve(session_id)
         if session.payment_status == 'paid':
-            order = request.user.order_set.filter(ordered=False).first()
+            order = request.user.orders.filter(ordered=False).first()
             if order:
                 order.ordered = True
+                order.payment_status = 'PAID'
                 order.stripe_session_id = session_id
                 order.save()
-                # Optionally clear the user's cart
-                # Optionally send confirmation emails
+                for item in order.items.all():
+                    item.ordered = True
+                    item.ordered_date = timezone.now()           
+                    item.save()
                 return render(request, 'cart/checkout_success.html', {'order': order})
             else:
-                return redirect('solo_app:solo_book_list')  # Order not found
+                return redirect('solo_app:solo_book_list')
         else:
             return redirect('cart_app:checkout_failure')
     except stripe.error.InvalidRequestError as e:
         print(f"Stripe Invalid Request Error: {e}")
         return redirect('cart_app:checkout_failure')
+
 
 
 def checkout_failure(request):
@@ -243,20 +261,52 @@ def stripe_webhook(request):
         # Invalid signature
         return HttpResponse(status=400)
 
+    # Handle the event
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
-        try:
-            order = Order.objects.get(stripe_session_id=session.id)
-            order.payment_status = 'PAID'
-            # Optionally update order status, send confirmation emails, etc.
-            order.save()
-        except Order.DoesNotExist:
-            print(f"Order not found for session ID: {session.id}")
-            pass
-
-    elif event['type'] == 'payment_failed':
-        payment_intent = event['data']['object']
-        print(f"Payment failed for PaymentIntent: {payment_intent.id}")
-        # Optionally update order status or notify the user
+        # For immediate payment methods, payment is confirmed here
+        if session.get('payment_status') == 'paid':
+            handle_successful_payment(session)
+    elif event['type'] == 'checkout.session.async_payment_succeeded':
+        session = event['data']['object']
+        # Payment has been confirmed after a delay
+        handle_successful_payment(session)
+    elif event['type'] == 'checkout.session.async_payment_failed':
+        session = event['data']['object']
+        # Handle failed payment accordingly
+        handle_failed_payment(session)
 
     return HttpResponse(status=200)
+
+
+def handle_successful_payment(session):
+    #print("✅ Handling successful payment for session:", session.get("id"))
+    order_id = session.get('metadata', {}).get('order_id')
+    if not order_id:
+        print("❌ No order_id found in session metadata.")
+        return
+    try:
+        order = Order.objects.get(id=order_id)
+        order.payment_status = 'PAID'
+        print("✅ Payment status updated to PAID for order:", order_id)
+        order.ordered = True
+        order.save()
+        for item in order.items.all():
+            item.ordered = True
+            item.save()
+        print(f"✅ Order {order.id} marked as PAID.")
+    except Order.DoesNotExist:
+        print(f"❌ Order not found for ID: {order_id}")
+
+
+
+def handle_failed_payment(session):
+    try:
+        order = Order.objects.get(stripe_session_id=session.id)
+        order.payment_status = 'FAILED'
+        order.save()
+        print(f"Order {order.id} marked as FAILED.")
+        # Optionally, notify the customer about the failed payment
+        # send_payment_failure_email(order.user.email, order)
+    except Order.DoesNotExist:
+        print(f"Order not found for session ID: {session.id}")
