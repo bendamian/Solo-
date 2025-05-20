@@ -1,7 +1,4 @@
-{% extends 'base.html' %}
-{% load cart_extras %}
-
-{% block content %}
+{% extends 'base.html' %} {% load cart_extras %} {% block content %}
 <div class="container my-5">
   <h2 class="mb-4">Thank You for Your Order!</h2>
 
@@ -11,7 +8,7 @@
 
   <h4 class="mt-4">Shipping Information</h4>
   <p>
-    {{ order.shipping_address }}<br>
+    {{ order.shipping_address }}<br />
     Phone: {{ order.phone_number }}
   </p>
 
@@ -36,13 +33,23 @@
       {% endfor %}
       <tr>
         <td colspan="3"><strong>Total</strong></td>
-        <td><strong>${{ total|floatformat:2 }}</strong></td>
+        <td><strong>${{ order.total_amount|floatformat:2 }}</strong></td>
+        {% if amount_display %}
+        <h2>Thank you for your payment!</h2>
+        <p>Total Paid: {{ amount_display }}</p>
+        {% elif error %}
+        <p>Error: {{ error }}</p>
+        {% else %}
+        <p>Unable to retrieve payment details.</p>
+        {% endif %}
       </tr>
     </tbody>
   </table>
 
   <p class="mt-4">
-    A confirmation email has been sent to your registered email address. If you have any questions, feel free to <a href="{% url 'solo_app:solo_book_list' %}">contact us</a>.
+    A confirmation email has been sent to your registered email address. If you
+    have any questions, feel free to
+    <a href="{% url 'solo_app:solo_book_list' %}">contact us</a>.
   </p>
 </div>
 {% endblock %}
